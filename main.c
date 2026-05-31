@@ -4,19 +4,40 @@
 #include <time.h>
 #include <stdint.h>
 #include <pthread.h>
-#include <termios.h>
 #include <unistd.h>
 #include <stdbool.h>
+
 
 // Defines for map width & height
 #define MAP_W 8
 #define MAP_H 8
 
+// IDK what is this but it is necessary for keyboard handling
+#if _WIN32
+#include <windows.h>
+HANDLE hStdin = NULL;
+DWORD fdwSaveOldMode = 0;
+void enable_raw_mode() {
+	hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	GetConsoleMode(hStdin, &fdwSaveOldMode);
+	DWORD fdwMode = fdwSaveOldMode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);  
+	SetConsoleMode(hStdin, fdwMode);
+}
+#else
+#include <termios.h>
+	void enable_raw_mode() {
+	struct termios term;
+	tcgetattr(STDIN_FILENO, &term);
+	term.c_lflag &= ~(ICANON | ECHO);
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+#endif
+
 // Point struct for storing 2D data
 typedef struct {
 	int8_t x;
 	int8_t y;
-} POINT;
+} POINT2D;
 
 // Mutex block for communication between threads
 typedef struct {
@@ -39,13 +60,6 @@ POINT rand_point(POINT *snake, int snake_tail) {
 	return p;
 }
 
-// IDK what is this but it is necessary for keyboard handling
-void enable_raw_mode() {
-	struct termios term;
-	tcgetattr(STDIN_FILENO, &term);
-	term.c_lflag &= ~(ICANON | ECHO);
-	tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
 
 // Keyboard handling function for thread
 void* key_handler(void* p) {
