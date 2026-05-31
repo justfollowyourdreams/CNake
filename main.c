@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <stdint.h>
 #include <pthread.h>
@@ -38,7 +39,7 @@ POINT rand_point(POINT *snake, int snake_tail) {
 	return p;
 }
 
-// IGK what is this but it is necessary for keyboard handling
+// IDK what is this but it is necessary for keyboard handling
 void enable_raw_mode() {
 	struct termios term;
 	tcgetattr(STDIN_FILENO, &term);
@@ -86,7 +87,12 @@ void* key_handler(void* p) {
 int main() {
 	srand(time(NULL)); // Random seed
 
-	MUTEX_DIR md;
+	// So called "sprites"
+	char apple_ascii[7] = "\e[41m  ";
+	char back_ascii[7]  = "\e[47m  ";
+	char snake_ascii[7] = "\e[42m  ";
+
+	MUTEX_DIR md; // Communication struct main instance
 	const struct timespec sleep_time = {
 		.tv_sec = 0,
 		.tv_nsec = 250 * 1000000
@@ -95,11 +101,9 @@ int main() {
 	uint8_t snake_tail = 1; // Length of snake
 	POINT *snake = calloc(MAP_W * MAP_H, sizeof(POINT)); // Snake points (head & tail)
 	POINT apple = rand_point(snake, snake_tail); // Apple point
-	char *out = calloc(MAP_H * (MAP_W * 2 + 1) + 1, sizeof(char)); // Output string buffer
-	// Memory formula: map_height * (map_width * 2 + 1) + 1
-	// 2 elements per game object (sign + space)-^   ^    ^
-	//                                  newline char-|    |
-	//              empty cell for string null-terminator-|
+	int out_size = MAP_H * (MAP_W * 7 + 1) + 1;
+	// 7 bytes for ANSI escape code and two spaces
+	char *out = calloc(out_size, sizeof(char)); // Output string buffer
 
 	// Initial values
 	snake[0] = (POINT){1, 1};
@@ -113,11 +117,17 @@ int main() {
 	// Init mutex & handle error if there is
 	if(pthread_mutex_init(&md.mutex, NULL) != 0) {
 		printf("Mutex initialization error. Exiting.\n");
+		// Free's in case of error
+		free(out); // Free buffer
+		free(snake); // Free snake points
 		return -1;
 	}
 	// Same with thread
 	else if(pthread_create(&key_handler_thread, NULL, key_handler, &md) != 0) {
 		printf("Thread initialization error. Exiting.\n");
+		// Free's in case of error
+		free(out); // Free buffer
+		free(snake); // Free snake points
 		return -1;
 	}
 	// Start handling
@@ -178,26 +188,26 @@ int main() {
 		// Clear map
 		for(int8_t j = 0; j < MAP_H; ++j) {
 			for(int8_t i = 0; i <= MAP_W; ++i) {
-				int index = i * 2 + j * (MAP_W * 2);
-				out[index] = '.';
-				out[index + 1] = '.';
+				// Put background texture in out string
+				strncpy(out + (i * 7 + j * (MAP_W * 7 + 1)), back_ascii, 7);
 			}
-			out[MAP_W * 2 + j * (MAP_W * 2) - 1] = '\n'; // Newline for end of row
+			out[MAP_W * 7 + j * (MAP_W * 7 + 1)] = '\n'; // Newline for end of row
 
 		}
-		out[MAP_H * (MAP_W * 2)] = '\0'; // Null-terminator for end of the buffer (string)
+		out[MAP_H * (MAP_W * 7 + 1)] = '\0'; // Null-terminator for end of the buffer (string)
 		// ----------------
 
-		out[apple.x * 2 + apple.y * (MAP_W * 2)] = 'o'; // Display apple
+		// Put apple in out string
+		strncpy(out + apple.x * 7 + apple.y * (MAP_W * 7 + 1), apple_ascii, 7);
 
-		// Draw snake
+		// // Draw snake
 		for(int i = 0; i < snake_tail; ++i)
-			out[snake[i].x * 2 + snake[i].y * (MAP_W * 2)] = '@';
+			strncpy(out + snake[i].x * 7 + snake[i].y * (MAP_W * 7 + 1), snake_ascii, 7);
 
 		printf("\e[2J\e[H"); // Clear screen ANSI escape sequence
 		printf("\e[7m -- CNake (C-snake) by justfollowyourdreams -- \e[0m\n"); // Title
 		printf(md.dir == 0 ? "\t(WASD to move, Q to exit)\n" : md.game_over ? "Game over! Score: %d. Press R to restart, Q to exit.\n" : "Score: %d\n", snake_tail - 1); // Info bar
-		printf("%s", out); // Buffer print
+		printf("%s\e[0m", out); // Buffer print & clear all styles
 		fflush(stdout); // Force stdout buffer refresh
 		nanosleep(&sleep_time, NULL); // Main thread sleep
 	}

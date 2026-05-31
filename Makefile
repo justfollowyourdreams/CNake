@@ -7,6 +7,8 @@ SRC = main.c
 all: $(TARGET)
 	./$(TARGET)
 
+build: $(TARGET)
+
 $(TARGET): $(SRC)
 	mkdir -p build/
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
