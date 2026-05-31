@@ -75,7 +75,7 @@ void* key_handler(void* p) {
 		else if((c == 'w' || c == 'W') && md->move != 4) {
 			md->dir = 3;
 		}
-		else if((c == 's' || c == 'S') && md->move != 4) {
+		else if((c == 's' || c == 'S') && md->move != 3) {
 			md->dir = 4;
 		}
 		pthread_mutex_unlock(&md->mutex); // Unlocking fields back
