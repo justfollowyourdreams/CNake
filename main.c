@@ -60,7 +60,7 @@ int main() {
 	struct timespec sleep_time;
 	pthread_t key_handler_thread;
 	POINT snake = {1, 1};
-	char *out = calloc(MAP_H * (MAP_W + 1) + 1, sizeof(char));
+	char *out = calloc(MAP_H * (MAP_W * 2 + 1) + 1, sizeof(char));
 
 	sleep_time.tv_sec = 0;
 	sleep_time.tv_nsec = 250 * 1000000;
@@ -94,16 +94,19 @@ int main() {
 
 		for(int8_t j = 0; j < MAP_H; ++j) {
 			for(int8_t i = 0; i <= MAP_W; ++i) {
-				int index = i + j * (MAP_W + 1);
-
+				int index = i * 2 + j * (MAP_W * 2 + 1);
 				if(i == MAP_W) 
 					out[index] = '\n';
-				else if(snake.x == i && snake.y == j)
+				else if(snake.x == i && snake.y == j){
 					out[index] = '+';
-				else
+					out[index + 1] = ' ';
+				}
+				else {
 					out[index] = '.';
+					out[index + 1] = ' ';
+				}
 			}
-			out[MAP_H * (MAP_W + 1)] = '\0';
+			out[MAP_H * (MAP_W * 2 + 1)] = '\0';
 		}
 		printf("\033[2J\033[H");
 		printf("%s", out);
