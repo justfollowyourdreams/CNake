@@ -65,6 +65,7 @@ int main() {
 	sleep_time.tv_sec = 0;
 	sleep_time.tv_nsec = 250 * 1000000;
 	md.run = true;
+	md.dir = 0;
 
 	if(pthread_mutex_init(&md.mutex, NULL) != 0) {
 		printf("Mutex initialization error. Exiting.\n");
@@ -75,8 +76,6 @@ int main() {
 		return -1;
 	}
 	pthread_detach(key_handler_thread);
-
-	printf("CNake (C-snake) by justfollowyourdreams.\nWASD to move, q to exit.\n");
 
 	while (md.run) {
 		snake.x += md.dir == 1 ? -1 : md.dir == 2 ? 1 : 0;
@@ -106,9 +105,10 @@ int main() {
 					out[index + 1] = ' ';
 				}
 			}
-			out[MAP_H * (MAP_W * 2 + 1)] = '\0';
 		}
 		printf("\033[2J\033[H");
+		printf("CNake (C-snake) by justfollowyourdreams.\n");
+		printf(md.dir == 0 ? "\t(WASD to move, q to exit)\n" : "Score: 0\n");
 		printf("%s", out);
 		fflush(stdout);
 		nanosleep(&sleep_time, NULL);
